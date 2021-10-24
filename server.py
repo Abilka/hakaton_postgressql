@@ -69,4 +69,24 @@ def send_validate():
     requests.get("http://" + server + ":" + config.REST_PORT + '/validate')
     return {"servers": 'ok'}
 
-app.run(port=5001)
+@app.route("/take_backups")
+def take_backup():
+    server = request.args['ip']
+    server_adr = "http://" + server + ":" + config.REST_PORT
+    return requests.get(server_adr + '/show_backups').json()
+
+@app.route("/restore_with_file", methods=['POST'])
+def restore_with_file():
+    server = request.args['ip']
+    base = request.args['base']
+    server_adr = "http://" + server + ":" + config.REST_PORT
+    return requests.get(server_adr + '/restore_f', params={'base': base}).json()
+
+@app.route("/restore_with_time", methods=['POST'])
+def restore_with_time():
+    server = request.args['ip']
+    base = request.args['time']
+    server_adr = "http://" + server + ":" + config.REST_PORT
+    return requests.get(server_adr + '/restore_t', params={'time': base}).json()
+
+app.run(port=config.SERVER_PORT)

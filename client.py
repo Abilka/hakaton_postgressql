@@ -1,6 +1,9 @@
+import os
+import shutil
 import subprocess
 import threading
 
+import requests
 from flask import Flask, request
 
 import config
@@ -25,19 +28,65 @@ class Client:
 
     def validate(self):
         self.job = 2
-        subprocess.call(
+        cmd = subprocess.Popen(
             [config.PATH_PROPOSATAGE, 'validate', '-B', config.BACKUP_PATH, '--instance', config.BACKUP_INSTANCE,
              '--format=json', '>', config.TEMP_FILE + '/temp.txt'])
-        with open(config.TEMP_FILE+'/temp.txt', 'r') as f:
-            data = json.loads(f.read())[0]["backups"]
-        ok_amount = list(map(lambda x: x['status'], data))
-        if len(ok_amount) == len(data):
-            self.job = 1
-            return True
-        self.job = 4
-        return False
+        try:
+            data = json.loads(cmd.communicate()[0])[0]['backups']
+        except:
+            self.job = 4
+            return {'status': 4}
+        self.job = 1
+        return True
 
 
+    def restor_to_file(self, bp_id: str):
+        self.job = 2
+        subprocess.call([r"C:\Program Files\PostgreSQL\12\bin\pg_ctl.exe", 'stop', '-D', r'C:\Program Files\PostgreSQL\12\data', '-w'])
+        for file in os.listdir(config.DATA_PATH):
+            shutil.rmtree(config.DATA_PATH+'\\'+file,ignore_errors=True)
+            try:
+                os.remove(config.DATA_PATH+'\\'+file)
+            except:
+                pass
+
+        try:
+            subprocess.call(
+            [config.PATH_PROPOSATAGE, 'restore', '-B', config.BACKUP_PATH, '--instance', config.BACKUP_INSTANCE, '-i', bp_id])
+        except:
+            pass
+        subprocess.call([r"C:\Program Files\PostgreSQL\12\bin\pg_ctl.exe", 'start', '-N', r"postgresql-x64-12", '-D', r"C:\Program Files\PostgreSQL\12\data", '-w'])
+
+        self.job = 1
+
+        return True
+
+    def restor_to_date(self, time: str):
+        os.system(r'"C:\Program Files\PostgreSQL\12\bin\pg_ctl.exe" stop -D "C:\Program Files\PostgreSQL\12\data" -w')
+        # 2020-01-01 00:00:00+03
+        # 2021-10-23 00:00:00+03
+        # формат времени
+        self.job = 2
+        for file in os.listdir(config.DATA_PATH):
+            shutil.rmtree(config.DATA_PATH + '\\' + file, ignore_errors=True)
+            try:
+                os.remove(config.DATA_PATH + '\\' + file)
+            except:
+                pass
+        subprocess.call(
+            [config.PATH_PROPOSATAGE, 'restore', '-B', config.BACKUP_PATH, '--instance', config.BACKUP_INSTANCE, '--recovery-target-time', time])
+        self.job = 1
+        os.system('"C:\\Program Files\\PostgreSQL\\12\\bin\\pg_ctl.exe" runservice -N "postgresql-x64-12" -D "C:\\Program Files\\PostgreSQL\\12\\data" -w')
+        return True
+
+    def show_backups(self) -> dict:
+        self.job = 2
+        #, '>', config.TEMP_FILE + '/temp.txt'
+        cmd = subprocess.Popen(
+            [config.PATH_PROPOSATAGE, 'show', '-B',  config.BACKUP_PATH, '--format=json'], stdout=subprocess.PIPE, stderr=None, shell=True)
+        data = json.loads(cmd.communicate()[0])[0]['backups']
+        self.job = 1
+        return {"bases": list(map(lambda x: [x['id'], x['end-time'], x['status'], x['backup-mode']], data))}
 
 app = Flask(__name__)
 
@@ -61,9 +110,24 @@ def status_client():
 
 @app.route("/validate")
 def validate_base():
-    if Me.job == 1:
+    if Me.job == 1 or Me.job == 4:
         Me.validate()
         return {'status': Me.job}
+
+@app.route("/show_backups")
+def show_backups():
+    if Me.job == 1:
+        return Me.show_backups()
+
+@app.route("/restore_f")
+def restore_file_filename():
+    if Me.job == 1:
+        return {'result': Me.restor_to_file(request.args['base']), 'status': Me.job}
+
+@app.route("/restore_t")
+def restore_file_time():
+    if Me.job == 1:
+        return {'result': Me.restor_to_date(request.args['time']), 'status': Me.job}
 
 if __name__ == "__main__":
     app.run()

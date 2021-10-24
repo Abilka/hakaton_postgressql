@@ -9,4 +9,4 @@ BACKUP_ACCOUNT_NAME = 'backup'
 REST_PORT = "5000"
 SERVER_IP = '127.0.0.1'
 SERVER_PORT = '5001'
-TEMP_FILE = r'C:\Users\User\PycharmProjects\pythonProject'
+TEMP_FILE = 'C:/Users/User/PycharmProjects/pythonProject'
