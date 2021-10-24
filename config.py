@@ -1,0 +1,12 @@
+PATH_PROPOSATAGE = r"C:\Program Files\pg_probackup\2.4.15\PostgreSQL12\pg_probackup.exe"
+SERVER_PASSWORD = 'root'
+SERVER_NICKNAME = ''
+CONNECT_PORT = 5432
+BACKUP_PATH = r'C:\backup'
+BACKUP_INSTANCE = 'base'
+DATA_PATH = r"C:\Program Files\PostgreSQL\12\data"
+BACKUP_ACCOUNT_NAME = 'backup'
+REST_PORT = "5000"
+SERVER_IP = '127.0.0.1'
+SERVER_PORT = '5001'
+TEMP_FILE = r'C:\Users\User\PycharmProjects\pythonProject'
